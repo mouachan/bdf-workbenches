@@ -1,0 +1,23 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: workbenches-rstudio-terra-fs-v2
+  namespace: build-rhoai-workbenches
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: DockerImage
+      name: 'quay.io/mouachan/workbenches:rstudio-terra-fs-v2'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile.cpu
+  postCommit: {}
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/mouachan/bdf-workbenches.git'
+      ref: main
+    contextDir: c9s-python-3.11
+  runPolicy: Serial
