@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: build-and-push-rstudio
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: git-revision
+      type: string
+      default: main
+    - name: image-url
+      type: string
+    - name: context-dir
+      type: string
+      default: c9s-python-3.11
+    - name: dockerfile
+      type: string
+      default: Dockerfile.cpu
+  workspaces:
+    - name: shared-data
+  tasks:
+    - name: clone
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: subdirectory
+          value: ""
+      workspaces:
+        - name: output
+          workspace: shared-data
+    - name: build
+      runAfter: [clone]
+      taskRef:
+        name: buildah-build
+      params:
+        - name: IMAGE
+          value: $(params.image-url)
+        - name: CONTEXT
+          value: $(params.context-dir)
+        - name: DOCKERFILE
+          value: $(params.dockerfile)
+      workspaces:
+        - name: source
+          workspace: shared-data
+    - name: push
+      runAfter: [build]
+      taskRef:
+        name: buildah-push
+      params:
+        - name: IMAGE
+          value: $(params.image-url)

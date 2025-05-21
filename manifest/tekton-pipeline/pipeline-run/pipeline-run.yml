@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: build-and-push-rstudio-run
+spec:
+  pipelineRef:
+    name: build-and-push-rstudio
+  params:
+    - name: git-url
+      value: https://github.com/mouachan/bdf-workbenches.git
+    - name: git-revision
+      value: main
+    - name: image-url
+      value: quay.io/mouachan/workbenches:rstudio-terra-fs-v2
+    - name: context-dir
+      value: c9s-python-3.11
+    - name: dockerfile
+      value: Dockerfile.cpu
+  workspaces:
+    - name: shared-data
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ "ReadWriteOnce" ]
+          resources:
+            requests:
+              storage: 1Gi

@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: buildah-build
+spec:
+  params:
+    - name: IMAGE
+      type: string
+    - name: CONTEXT
+      type: string
+      default: .
+    - name: DOCKERFILE
+      type: string
+      default: Dockerfile
+  workspaces:
+    - name: source
+  steps:
+    - name: build
+      image: quay.io/buildah/stable
+      securityContext:
+        privileged: true
+      script: |
+        buildah bud --format docker -f $(params.DOCKERFILE) -t $(params.IMAGE) $(workspaces.source.path)/$(params.CONTEXT)
