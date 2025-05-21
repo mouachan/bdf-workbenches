@@ -36,13 +36,13 @@ You can build the image locally and push it to your Quay.io repository:
 
 ```sh
 # Build the image locally
-podman build -f c9s-python-3.11/Dockerfile.cpu -t quay.io/mouachan/workbenches:rstudio-terra-fs-v2 .
+podman build -f c9s-python-3.11/Dockerfile.cpu -t quay.io/<username>/workbenches:rstudio-terra-fs-v2 .
 
 # Log in to Quay.io (if not already)
 podman login quay.io
 
 # Push the image
-podman push quay.io/mouachan/workbenches:rstudio-terra-fs-v2
+podman push quay.io/<username>/workbenches:rstudio-terra-fs-v2
 ```
 
 You can then deploy this image on OpenShift using a Deployment or DeploymentConfig that references the Quay.io image.
@@ -91,8 +91,53 @@ oc logs -f bc/workbenches-rstudio-terra-fs-v2
 Once the image is available in Quay.io, create a Deployment or DeploymentConfig in OpenShift that uses:
 
 ```yaml
-image: quay.io/mouachan/workbenches:rstudio-terra-fs-v2
+image: quay.io/<username>/workbenches:rstudio-terra-fs-v2
 ```
+
+---
+
+### 3. Building and Pushing with Tekton Pipeline
+
+You can automate the build and push process using a Tekton pipeline. This approach is recommended for CI/CD and reproducibility.
+
+#### a. Prerequisites
+
+- The OpenShift Pipelines (Tekton) Operator must be installed on your cluster.
+- You have created the Tekton `Task`, `Pipeline`, and (optionally) `PipelineRun` YAML files (see `manifest/tekton-pipeline/`).
+
+#### b. Apply the Tekton Resources
+
+Apply the tasks and pipeline (do **not** apply the PipelineRun yet if you don't want to run immediately):
+
+```sh
+oc apply -f manifest/tekton-pipeline/tasks/git-clone.yaml
+oc apply -f manifest/tekton-pipeline/tasks/buildah-build.yaml
+oc apply -f manifest/tekton-pipeline/tasks/buildah-push.yaml
+oc apply -f manifest/tekton-pipeline/pipeline/build-and-push-rstudio-pipeline.yaml
+```
+
+#### c. Run the Pipeline
+
+To start the pipeline, apply the PipelineRun YAML:
+
+```sh
+oc apply -f manifest/tekton-pipeline/pipeline-run/pipeline-run.yaml
+```
+
+Or create a PipelineRun from the web console or CLI.
+
+#### d. Monitor the Pipeline
+
+```sh
+tkn pipelinerun logs -f <pipeline-run-name>
+```
+or use the OpenShift web console.
+
+#### e. Notes
+
+- The pipeline will clone your repo, build the image using Buildah, and push it to Quay.io.
+- Make sure your service account has the necessary permissions and secrets to push to Quay.io.
+- You can customize the pipeline parameters (git repo, context dir, image name, etc.) in the PipelineRun YAML.
 
 ---
 
@@ -100,4 +145,4 @@ image: quay.io/mouachan/workbenches:rstudio-terra-fs-v2
 
 - The build context is set to `c9s-python-3.11` and uses `Dockerfile.cpu`.
 - If the build fails to push to Quay.io, ensure your credentials are correct and linked as a secret.
-- For troubleshooting, check build logs with `oc logs -f bc/<buildconfig-name>`.
+- For troubleshooting, check build logs with `oc logs -f bc/<buildconfig-name>` or `tkn pipelinerun logs -f <pipeline-run-name>`.
